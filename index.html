@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Norse Mythology Nine Realms Flashcards</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .card-flip { perspective: 1000px; }
+    .card-inner { transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(.4,0,.2,1); position: relative; }
+    .card-inner.flipped { transform: rotateY(180deg); }
+    .card-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+    .card-back { transform: rotateY(180deg); }
+    .realm-btn.active { border-color: #f59e0b; color: #fbbf24; background: rgba(245,158,11,0.12); }
+    .star { cursor: pointer; color: #4b5563; font-size: 1.2rem; transition: color 0.15s; }
+    .star.lit { color: #f59e0b; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+  <header class="bg-gray-900 border-b border-gray-800 px-4 py-4">
+    <div class="max-w-3xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-yellow-800 rounded-lg flex items-center justify-center text-2xl" aria-hidden="true">🌲</div>
+        <div>
+          <h1 class="text-xl font-bold text-white">Norse Mythology Flashcards</h1>
+          <p class="text-sm text-gray-400">Nine Realms · Gods · Creatures · Events</p>
+        </div>
+      </div>
+      <div class="flex gap-2 items-center">
+        <span id="score-display" class="text-sm text-yellow-400 font-mono"></span>
+        <button id="shuffle-btn" class="bg-yellow-800 hover:bg-yellow-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition" aria-label="Shuffle cards">Shuffle</button>
+        <button id="reset-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition" aria-label="Reset progress">Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 py-6" role="main">
+    <!-- Category Filter -->
+    <div class="flex flex-wrap gap-2 mb-6" role="group" aria-label="Category filter">
+      <button class="realm-btn active px-3 py-1.5 text-sm rounded-lg border border-gray-700 text-gray-300 hover:border-yellow-500 transition" data-cat="" aria-pressed="true">All</button>
+      <button class="realm-btn px-3 py-1.5 text-sm rounded-lg border border-gray-700 text-gray-300 hover:border-yellow-500 transition" data-cat="Gods" aria-pressed="false">⚡ Gods</button>
+      <button class="realm-btn px-3 py-1.5 text-sm rounded-lg border border-gray-700 text-gray-300 hover:border-yellow-500 transition" data-cat="Realms" aria-pressed="false">🌍 Realms</button>
+      <button class="realm-btn px-3 py-1.5 text-sm rounded-lg border border-gray-700 text-gray-300 hover:border-yellow-500 transition" data-cat="Creatures" aria-pressed="false">🐉 Creatures</button>
+      <button class="realm-btn px-3 py-1.5 text-sm rounded-lg border border-gray-700 text-gray-300 hover:border-yellow-500 transition" data-cat="Artifacts" aria-pressed="false">🔱 Artifacts</button>
+      <button class="realm-btn px-3 py-1.5 text-sm rounded-lg border border-gray-700 text-gray-300 hover:border-yellow-500 transition" data-cat="Events" aria-pressed="false">💥 Events</button>
+      <button class="realm-btn px-3 py-1.5 text-sm rounded-lg border border-gray-700 text-gray-300 hover:border-yellow-500 transition" data-cat="Concepts" aria-pressed="false">📜 Concepts</button>
+    </div>
+
+    <!-- Progress -->
+    <div class="flex justify-between text-sm text-gray-400 mb-2">
+      <span>Card <span id="card-pos">1</span> / <span id="card-total">0</span></span>
+      <span><span id="known-num">0</span> known · <span id="unseen-num">0</span> remaining</span>
+    </div>
+    <div class="bg-gray-800 rounded-full h-1.5 mb-6" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress-bar-wrap">
+      <div id="progress-bar" class="bg-yellow-500 h-1.5 rounded-full transition-all duration-300" style="width:0%"></div>
+    </div>
+
+    <!-- Card -->
+    <div class="card-flip mb-5" style="min-height:300px;">
+      <div id="card-inner" class="card-inner w-full cursor-pointer" role="button" tabindex="0" aria-label="Flashcard — click or press Enter to flip" onclick="flipCard()" style="min-height:300px;">
+        <!-- Front -->
+        <div class="card-face absolute inset-0 bg-gray-900 border-2 border-yellow-700/40 rounded-2xl p-8 flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <span id="card-cat-badge" class="text-xs px-2.5 py-0.5 rounded-full bg-yellow-900 text-yellow-200 font-medium"></span>
+            <div class="flex gap-1" id="stars-front" role="group" aria-label="Difficulty stars"></div>
+          </div>
+          <div class="text-center flex-1 flex flex-col items-center justify-center">
+            <div id="card-front-text" class="text-3xl font-bold text-yellow-100 mb-4 leading-snug"></div>
+            <div id="card-front-sub" class="text-sm text-gray-400"></div>
+          </div>
+          <div class="text-center text-xs text-gray-600">Click · Enter · Space to flip</div>
+        </div>
+        <!-- Back -->
+        <div class="card-face card-back absolute inset-0 bg-gray-800 border-2 border-yellow-600/40 rounded-2xl p-7 flex flex-col gap-3 overflow-y-auto">
+          <div class="flex items-start justify-between">
+            <div>
+              <div id="back-name" class="text-xl font-bold text-yellow-100 mb-0.5"></div>
+              <div id="back-cat" class="text-xs text-gray-400"></div>
+            </div>
+            <div class="flex gap-1" id="stars-back" role="group" aria-label="Difficulty stars"></div>
+          </div>
+          <div class="border-t border-gray-700 pt-3 flex-1 space-y-3">
+            <div>
+              <div class="text-xs text-yellow-500 font-semibold uppercase tracking-wider mb-1">Description</div>
+              <div id="back-desc" class="text-sm text-gray-200 leading-relaxed"></div>
+            </div>
+            <div id="back-extra-wrap">
+              <div class="text-xs text-yellow-500 font-semibold uppercase tracking-wider mb-1">Key Connections</div>
+              <div id="back-extra" class="text-sm text-gray-400 leading-relaxed"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex gap-3 justify-center mb-8" role="group" aria-label="Rate card knowledge">
+      <button onclick="rateCard('again')" class="flex-1 max-w-28 bg-red-900 hover:bg-red-800 border border-red-700 text-white py-2.5 rounded-xl text-sm font-medium transition" aria-label="Mark as needs review">Again</button>
+      <button onclick="rateCard('hard')" class="flex-1 max-w-28 bg-orange-900 hover:bg-orange-800 border border-orange-700 text-white py-2.5 rounded-xl text-sm font-medium transition" aria-label="Mark as hard">Hard</button>
+      <button onclick="rateCard('good')" class="flex-1 max-w-28 bg-green-900 hover:bg-green-800 border border-green-700 text-white py-2.5 rounded-xl text-sm font-medium transition" aria-label="Mark as known">Known ✓</button>
+    </div>
+    <div class="flex justify-between mb-8">
+      <button onclick="prevCard()" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white px-6 py-2 rounded-lg text-sm transition" aria-label="Previous card">← Prev</button>
+      <button onclick="nextCard()" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white px-6 py-2 rounded-lg text-sm transition" aria-label="Next card">Next →</button>
+    </div>
+
+    <!-- Index -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <h2 class="text-sm font-semibold text-white mb-3">Card Index</h2>
+      <div id="card-index" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-80 overflow-y-auto pr-1"></div>
+    </div>
+  </main>
+
+  <script>
+    const CARDS = [
+      // Realms
+      { front: 'Asgard', sub: 'One of the Nine Realms', cat: 'Realms', stars: 1, desc: 'Home of the Aesir gods, connected to Midgard by the rainbow bridge Bifröst. A realm of golden halls including Valhalla, where Odin rules from his throne Hlidskjalf.', extra: 'Connected to: Midgard via Bifröst · Contains Valhalla · Guarded by Heimdall · Also called "Ásgarðr"' },
+      { front: 'Midgard', sub: 'One of the Nine Realms', cat: 'Realms', stars: 1, desc: 'The realm of humans, created from the body of the giant Ymir by Odin and his brothers. Encircled by the sea in which the Midgard Serpent Jörmungandr lies.', extra: 'Created by: Odin, Vili, Vé · Guarded by: Jörmungandr · Connected to Asgard via Bifröst' },
+      { front: 'Jötunheim', sub: 'One of the Nine Realms', cat: 'Realms', stars: 2, desc: 'The cold, harsh realm of the giants (Jötnar). Separated from Asgard by the Iving River, which never freezes. Home to Utgard and ruled by Thrym or Utgard-Loki in various myths.', extra: 'Inhabitants: Giants (Jötnar) · Contains fortress Utgard · Separated from Asgard by river Iving' },
+      { front: 'Niflheim', sub: 'One of the Nine Realms', cat: 'Realms', stars: 2, desc: 'The primordial realm of ice, mist, and cold in the far north. One of the two primordial realms (with Muspelheim). Contained the spring Hvergelmir, source of 11 rivers (Élivágar).', extra: 'Primordial realm · Contains spring Hvergelmir · Source of the Élivágar rivers · Related to Helheim' },
+      { front: 'Muspelheim', sub: 'One of the Nine Realms', cat: 'Realms', stars: 2, desc: 'The primordial realm of fire in the south, guarded by the fire giant Surtr with his flaming sword. Will play a key role in Ragnarök when Surtr rides out to engulf the nine realms in flame.', extra: 'Guarded by: Surtr · Role at Ragnarök: Surtr destroys the realms · Primordial realm paired with Niflheim' },
+      { front: 'Helheim', sub: 'One of the Nine Realms', cat: 'Realms', stars: 2, desc: 'The realm of the dead ruled by the goddess Hel, daughter of Loki. Most humans who die of illness or old age (not in battle) come here. A cold, grey realm enclosed by the river Gjöll.', extra: 'Ruler: Hel (daughter of Loki) · River: Gjöll · Dog guardian: Garm · Vs Valhalla (warrior dead)' },
+      { front: 'Alfheim', sub: 'One of the Nine Realms', cat: 'Realms', stars: 3, desc: 'The realm of the Light Elves (Ljósálfar), given to the god Freyr as a tooth gift. A beautiful, luminous realm associated with light, fertility, and artistic inspiration.', extra: 'Ruler: Freyr (gift from Odin) · Inhabitants: Ljósálfar (Light Elves) · Associated with: Light, fertility' },
+      { front: 'Svartalfheim', sub: 'One of the Nine Realms', cat: 'Realms', stars: 3, desc: 'The underground realm of the Dark Elves (Dökkálfar) or Dwarves (Dvergar). The most skilled craftsmen in the cosmos live here, creators of Mjölnir, Gungnir, and Gleipnir.', extra: 'Inhabitants: Dwarves/Dark Elves · Created: Mjölnir, Gungnir, Gungnir, Gleipnir, Draupnir' },
+      { front: 'Vanaheim', sub: 'One of the Nine Realms', cat: 'Realms', stars: 3, desc: 'Home of the Vanir gods, a separate tribe of deities associated with fertility, wisdom, and nature. After the Aesir-Vanir War, gods were exchanged as hostages — Freyr and Freya came to Asgard.', extra: 'Inhabitants: Vanir gods · After Aesir-Vanir War: Freyr, Freya, Njörðr sent to Asgard as hostages/peace settlement' },
+      // Gods
+      { front: 'Odin (Allfather)', sub: 'Chief of the Aesir', cat: 'Gods', stars: 1, desc: 'King of the Aesir gods, god of wisdom, war, death, poetry, and magic. Sacrificed an eye at Mimir\'s well for cosmic wisdom and hung on Yggdrasil for 9 days to learn the runes.', extra: 'Weapons: Gungnir (spear) · Ravens: Huginn & Muninn · Wolves: Geri & Freki · Hall: Valhalla · Wife: Frigg' },
+      { front: 'Thor', sub: 'God of Thunder', cat: 'Gods', stars: 1, desc: 'Son of Odin and Jörð (Earth). God of thunder, storms, strength, and the protection of mankind. Wields Mjölnir, rides a chariot pulled by goats Tanngrisnir and Tanngnjóstr.', extra: 'Weapon: Mjölnir · Belt: Megingjörð · Gloves: Járngreipr · Enemy: Jörmungandr (kills each other at Ragnarök)' },
+      { front: 'Loki', sub: 'Trickster God', cat: 'Gods', stars: 1, desc: 'A shape-shifting trickster and god of mischief, son of the giant Fárbauti. Father of Hel, Fenrir, and Jörmungandr by the giantess Angrboða. Responsible for Baldr\'s death; bound until Ragnarök.', extra: 'Children: Hel, Fenrir, Jörmungandr, Sleipnir (by Svaðilfari) · Killed: Baldr (indirectly) · Bound by: entrails of his son Narfi' },
+      { front: 'Freya', sub: 'Goddess of Love & War', cat: 'Gods', stars: 2, desc: 'Vanir goddess of love, fertility, beauty, war, and death. Leads the Valkyries and takes half of the battle-slain to her hall Fólkvangr. Possesses the magical cloak Fálkhamr and necklace Brísingamen.', extra: 'Realm: Fólkvangr · Necklace: Brísingamen · Boar: Hildisvíni · Cloak: Fálkhamr (falcon feather cloak)' },
+      { front: 'Tyr', sub: 'God of War & Justice', cat: 'Gods', stars: 2, desc: 'One-handed god of war, justice, and law. Sacrificed his right hand to Fenrir the wolf as a pledge of good faith when binding the beast with Gleipnir. His name lives on in "Tuesday."', extra: 'Lost: Right hand to Fenrir · Day: Tuesday (Tyr\'s day) · Associated with: Law, justice, single combat' },
+      { front: 'Heimdall', sub: 'Watchman of the Gods', cat: 'Gods', stars: 2, desc: 'Guardian of the Bifröst rainbow bridge, the gatekeeper between Asgard and the other realms. Possesses extraordinary sight and hearing. Will blow the Gjallarhorn at the onset of Ragnarök.', extra: 'Post: Guards Bifröst bridge · Horn: Gjallarhorn · Can see/hear across all Nine Realms · Kills Loki at Ragnarök' },
+      { front: 'Baldr', sub: 'God of Light & Beauty', cat: 'Gods', stars: 2, desc: 'Son of Odin and Frigg, beloved god of light, purity, and beauty. His death — engineered by Loki using mistletoe — is one of the pivotal events leading to Ragnarök. Returns after Ragnarök.', extra: 'Mother: Frigg · Killed by: blind god Höðr (tricked by Loki with mistletoe) · Returns after Ragnarök' },
+      // Creatures
+      { front: 'Fenrir', sub: 'The Great Wolf', cat: 'Creatures', stars: 1, desc: 'Monstrous wolf, son of Loki and Angrboða. Bound by the magical ribbon Gleipnir on the island of Lyngvi. Will break free at Ragnarök and swallow Odin; killed by Víðarr who tears his jaw apart.', extra: 'Bound by: Gleipnir (made from impossible things) · Kills: Odin at Ragnarök · Killed by: Víðarr (Odin\'s son)' },
+      { front: 'Jörmungandr', sub: 'The Midgard Serpent', cat: 'Creatures', stars: 1, desc: 'World serpent so large it encircles Midgard and bites its own tail (ouroboros). Son of Loki. Arch-enemy of Thor — at Ragnarök they kill each other: Thor slays it then walks 9 paces and dies from venom.', extra: 'Parent: Loki · Encircles: Midgard (sea) · Enemy: Thor (mutual kill at Ragnarök) · Motif: Ouroboros' },
+      { front: 'Ratatoskr', sub: 'Squirrel of Yggdrasil', cat: 'Creatures', stars: 3, desc: 'A squirrel that runs up and down Yggdrasil carrying insulting messages between the eagle at the top and the serpent Níðhöggr at the roots, sowing discord between them.', extra: 'Runs between: Eagle (top) and Níðhöggr (roots) of Yggdrasil · Function: Carries insults, stirs conflict' },
+      { front: 'Níðhöggr', sub: 'Dragon of the Roots', cat: 'Creatures', stars: 3, desc: 'A great dragon/serpent that gnaws eternally at the roots of Yggdrasil, along with countless serpents, trying to destroy the world tree. At Ragnarök, flies up bearing corpses on its wings.', extra: 'Location: Roots of Yggdrasil (Náströnd in Niflheim) · Action: Gnaws roots · Ragnarök: Flies up with corpses' },
+      { front: 'Valkyries', sub: 'Choosers of the Slain', cat: 'Creatures', stars: 2, desc: 'Odin\'s female warriors who choose which warriors die in battle and escort the honoured dead to Valhalla. Led by Freya. Names include Brynhildr, Göndul, and Hildr. Associated with ravens.', extra: 'Leader: Freya · Purpose: Select battle-dead, escort to Valhalla · Famous: Brynhildr · Also serve mead in Valhalla' },
+      // Artifacts
+      { front: 'Mjölnir', sub: 'Thor\'s Hammer', cat: 'Artifacts', stars: 1, desc: 'The most famous weapon in Norse mythology — Thor\'s hammer, forged by the dwarf brothers Sindri and Brokkr in Svartalfheim. Can level mountains; always returns when thrown. Short handle due to Loki\'s sabotage.', extra: 'Makers: Sindri & Brokkr · Short handle: Loki\'s sabotage · Used for: Battle, blessings, consecration of marriages' },
+      { front: 'Gungnir', sub: 'Odin\'s Spear', cat: 'Artifacts', stars: 2, desc: 'Odin\'s magical spear, forged by the sons of Ivaldi in Svartalfheim. Never misses its mark. Odin threw it over the enemy at the start of the Aesir-Vanir War: "I give you to Odin."', extra: 'Maker: Sons of Ivaldi · Property: Never misses · Used at: Start of Aesir-Vanir War (thrown over enemy forces)' },
+      { front: 'Gleipnir', sub: 'The Unbreakable Ribbon', cat: 'Artifacts', stars: 3, desc: 'The magical chain used to bind Fenrir, made from six impossible things: sound of a cat\'s footfall, beard of a woman, roots of a mountain, sinews of a bear, breath of a fish, and spittle of a bird.', extra: 'Appearance: Smooth silk ribbon · Maker: Dwarves of Svartalfheim · Bound: Fenrir · Impossible ingredients: 6 things that don\'t exist' },
+      { front: 'Yggdrasil', sub: 'The World Tree', cat: 'Concepts', stars: 1, desc: 'The immense sacred ash tree that connects and contains the Nine Realms. Its three roots reach to Asgard (Urðarbrunnr), Jötunheim (Mimir\'s Well), and Niflheim (Hvergelmir). The axis of the Norse cosmos.', extra: 'Wells at roots: Urðarbrunnr (Norns), Mimir\'s Well (wisdom), Hvergelmir (springs) · Animals: Eagle, Ratatoskr, Níðhöggr, 4 deer' },
+      // Events
+      { front: 'Ragnarök', sub: 'Twilight of the Gods', cat: 'Events', stars: 1, desc: 'The prophesied end of the cosmos: a great battle where most gods die. Odin is swallowed by Fenrir, Thor and Jörmungandr kill each other, Surtr engulfs the world in fire. A new world rises afterward.', extra: 'Triggered by: Baldr\'s death, Fimbulwinter · Key deaths: Odin (Fenrir), Thor (Jörmungandr), Freyr (Surtr) · Aftermath: World reborn' },
+      { front: 'Fimbulwinter', sub: 'The Great Winter', cat: 'Events', stars: 2, desc: 'The harbinger of Ragnarök — three consecutive winters with no summers between them. A time of war, fraternal strife, and the breakdown of social order. "Fimbul" means "great/enormous."', extra: 'Duration: 3 winters with no summer · Role: Prelude to Ragnarök · Social effects: War between brothers, collapse of moral order' },
+      { front: 'Aesir-Vanir War', sub: 'The First War', cat: 'Events', stars: 3, desc: 'The mythological first war between the two tribes of gods. Ended in a truce with the exchange of hostages: Njörðr, Freyr, and Freya went to Asgard; Mimir and Hönir went to Vanaheim.', extra: 'Parties: Aesir (Odin\'s tribe) vs Vanir · Trigger: Gullveig/Heiðr · Resolution: Hostage exchange, god Kvasir created from mixed saliva' },
+      // Concepts
+      { front: 'Valhalla', sub: 'Hall of the Slain', cat: 'Concepts', stars: 1, desc: 'Odin\'s majestic hall in Asgard where heroes (Einherjar) slain in battle feast and fight each day, preparing for Ragnarök. Has 540 doors each wide enough for 800 warriors to march through abreast.', extra: 'Location: Asgard · Who goes there: Einherjar (battle-slain chosen by Valkyries) · Daily cycle: Fight by day, feast by night' },
+      { front: 'Norns', sub: 'Weavers of Fate', cat: 'Concepts', stars: 2, desc: 'Three female beings — Urð (What Was), Verðandi (What Is), and Skuld (What Shall Be) — who weave the fate of gods and men at the Well of Urðr beneath Yggdrasil.', extra: 'Names: Urð (past), Verðandi (present), Skuld (future) · Location: Well of Urðr, Yggdrasil root · Function: Weave fate of all beings' },
+      { front: 'Einherjar', sub: 'Warriors of Valhalla', cat: 'Concepts', stars: 2, desc: 'The honoured battle-slain chosen by the Valkyries to reside in Valhalla. Each day they fight and kill each other, then are resurrected to feast on boar Sæhrímnir and mead. They will fight alongside Odin at Ragnarök.', extra: 'Home: Valhalla · Daily cycle: Battle (die/resurrect) · Food: Boar Sæhrímnir (regenerates) · Role at Ragnarök: Fight for Odin' },
+    ];
+
+    const STORAGE_KEY = 'norseMythFlashcards';
+    let deck = [];
+    let currentIdx = 0;
+    let isFlipped = false;
+    let progress = {};
+
+    function loadProgress() {
+      try { const s = localStorage.getItem(STORAGE_KEY); if (s) progress = JSON.parse(s); } catch(e) {}
+    }
+    function saveProgress() { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); }
+
+    let activeCat = '';
+
+    function buildDeck() {
+      deck = activeCat ? CARDS.filter(c => c.cat === activeCat) : [...CARDS];
+      currentIdx = 0;
+      isFlipped = false;
+      document.getElementById('card-inner').classList.remove('flipped');
+      document.getElementById('card-total').textContent = deck.length;
+      renderCard();
+      buildIndex();
+      updateStats();
+    }
+
+    function renderCard() {
+      if (!deck.length) return;
+      const c = deck[currentIdx];
+      document.getElementById('card-front-text').textContent = c.front;
+      document.getElementById('card-front-sub').textContent = c.sub;
+      document.getElementById('card-cat-badge').textContent = c.cat;
+      document.getElementById('back-name').textContent = c.front;
+      document.getElementById('back-cat').textContent = c.sub + ' · ' + c.cat;
+      document.getElementById('back-desc').textContent = c.desc;
+      document.getElementById('back-extra').textContent = c.extra;
+      document.getElementById('card-pos').textContent = currentIdx + 1;
+      renderStars(document.getElementById('stars-front'), c.stars);
+      renderStars(document.getElementById('stars-back'), c.stars);
+      const pct = deck.filter(d => progress[d.front] === 'known').length / deck.length * 100;
+      document.getElementById('progress-bar').style.width = pct + '%';
+    }
+
+    function renderStars(container, count) {
+      container.innerHTML = '';
+      for (let i = 1; i <= 3; i++) {
+        const s = document.createElement('span');
+        s.className = 'star' + (i <= count ? ' lit' : '');
+        s.textContent = '★';
+        s.setAttribute('aria-hidden', 'true');
+        container.appendChild(s);
+      }
+    }
+
+    function flipCard() {
+      isFlipped = !isFlipped;
+      document.getElementById('card-inner').classList.toggle('flipped', isFlipped);
+    }
+
+    document.getElementById('card-inner').addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flipCard(); }
+    });
+
+    function prevCard() {
+      isFlipped = false;
+      document.getElementById('card-inner').classList.remove('flipped');
+      currentIdx = (currentIdx - 1 + deck.length) % deck.length;
+      renderCard();
+    }
+    function nextCard() {
+      isFlipped = false;
+      document.getElementById('card-inner').classList.remove('flipped');
+      currentIdx = (currentIdx + 1) % deck.length;
+      renderCard();
+    }
+    function rateCard(r) {
+      const c = deck[currentIdx];
+      progress[c.front] = r === 'good' ? 'known' : r === 'hard' ? 'hard' : 'again';
+      saveProgress();
+      updateStats();
+      buildIndex();
+      nextCard();
+    }
+
+    function updateStats() {
+      const known = CARDS.filter(c => progress[c.front] === 'known').length;
+      const unseen = CARDS.filter(c => !progress[c.front]).length;
+      document.getElementById('known-num').textContent = known;
+      document.getElementById('unseen-num').textContent = unseen;
+      document.getElementById('score-display').textContent = known + '/' + CARDS.length + ' known';
+    }
+
+    function buildIndex() {
+      const idx = document.getElementById('card-index');
+      idx.innerHTML = '';
+      deck.forEach((c, i) => {
+        const s = progress[c.front] || 'unseen';
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800 cursor-pointer text-xs transition';
+        div.setAttribute('role', 'button');
+        div.setAttribute('tabindex', '0');
+        div.setAttribute('aria-label', 'Go to: ' + c.front);
+        div.addEventListener('click', () => { currentIdx = i; isFlipped = false; document.getElementById('card-inner').classList.remove('flipped'); renderCard(); window.scrollTo({top:0,behavior:'smooth'}); });
+        div.addEventListener('keydown', e => { if (e.key === 'Enter') div.click(); });
+
+        const dot = document.createElement('div');
+        dot.className = 'w-2 h-2 rounded-full flex-shrink-0 ' + (s === 'known' ? 'bg-green-500' : s === 'hard' ? 'bg-orange-500' : s === 'again' ? 'bg-red-500' : 'bg-gray-600');
+
+        const name = document.createElement('span');
+        name.className = 'truncate text-gray-300';
+        name.textContent = c.front;
+
+        div.appendChild(dot);
+        div.appendChild(name);
+        idx.appendChild(div);
+      });
+    }
+
+    document.querySelectorAll('.realm-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.realm-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+        btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
+        activeCat = btn.dataset.cat;
+        buildDeck();
+      });
+    });
+
+    document.getElementById('shuffle-btn').addEventListener('click', () => {
+      deck.sort(() => Math.random() - 0.5);
+      currentIdx = 0;
+      isFlipped = false;
+      document.getElementById('card-inner').classList.remove('flipped');
+      renderCard();
+      buildIndex();
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      if (!confirm('Reset all progress?')) return;
+      progress = {};
+      saveProgress();
+      updateStats();
+      buildIndex();
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+      if (e.key === 'ArrowRight') nextCard();
+      if (e.key === 'ArrowLeft') prevCard();
+      if (e.key === '1') rateCard('again');
+      if (e.key === '2') rateCard('hard');
+      if (e.key === '3') rateCard('good');
+    });
+
+    loadProgress();
+    buildDeck();
+  </script>
+</body>
+</html>
